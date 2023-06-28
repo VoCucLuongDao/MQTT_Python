@@ -1,0 +1,46 @@
+oopenssl genrsa -des3 -out ca.key 2048
+
+openssl req -new -x509 -days 365 -key ca.key -out ca.crt
+
+openssl genrsa -out server.key 2048
+
+openssl req -new -out server.csr -key server.key
+
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365
+
+sudo gedit /etc/mosquitto/mosquitto.conf
+##############################################################
+# Place your local configuration in /etc/mosquitto/conf.d/
+#
+# A full description of the configuration file is at
+# /usr/share/doc/mosquitto/examples/mosquitto.conf.example
+
+per_listener_settings true
+
+pid_file /run/mosquitto/mosquitto.pid
+
+persistence true
+persistence_location /var/lib/mosquitto/
+
+log_dest file /var/log/mosquitto/mosquitto.log
+
+include_dir /etc/mosquitto/conf.d
+
+listener 1883
+#allow_anonymous false
+#password_file /etc/mosquitto/psw.txt
+
+listener 8883
+allow_anonymous true
+cafile /etc/mosquitto/certs/ca.crt
+certfile /etc/mosquitto/certs/server.crt
+keyfile /etc/mosquitto/certs/server.key
+
+#############################################################
+
+sudo service mosquitto start
+
+mosquitto_sub -h 192.168.117.128 -p 8883 -t test --cafile /home/vcld/mqtt/cer/ca.crt -d
+
+mosquitto_pub -h 192.168.117.128 -p 8883 -t test -m 'Hello world' --cafile /home/vcld/mqtt/cer/ca.crt -d
+
